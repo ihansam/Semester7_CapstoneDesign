@@ -1,6 +1,8 @@
 *.zip
 *.pptx
 *.docx
+*.pdf
+*.hwp
 
 # Private until end class
 Homework/
