@@ -3,6 +3,6 @@
 *.docx
 *.pdf
 *.hwp
-
+*.txt
 # Private until end class
 Homework/
