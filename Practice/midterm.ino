@@ -1,3 +1,4 @@
+// Kidan Jin, EEE, SKKU
 const int REDpin = 10;
 const int GREENpin = 9;
 const int BLUEpin = 6;
@@ -76,4 +77,3 @@ void loop() {
     
   delay(100);
 }
-
