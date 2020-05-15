@@ -1,3 +1,4 @@
+# ignore file format
 *.zip
 *.pptx
 *.docx
@@ -5,6 +6,10 @@
 *.hwp
 *.txt
 *.jpg
+*.png
 *.mp4
-# Private until end class
-Assignment/
+
+# ignore directory
+Accounting/
+Notice/
+PROJECT/Reserch
