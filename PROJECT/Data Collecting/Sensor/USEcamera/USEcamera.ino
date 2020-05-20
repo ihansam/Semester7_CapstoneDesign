@@ -84,6 +84,8 @@ void myCAMSaveToSDFile(){
       buf[i++] = temp;  //save the last  0XD9     
       //Write the remain bytes in the buffer
       myCAM.CS_HIGH();
+      Serial.println(F("-------------A--------------"));
+      for(int tt = 0; tt < i; ++tt) Serial.print(buf[i]);
 //      outFile.write(buf, i);    
       //Close the file
 //      outFile.close();
@@ -103,15 +105,8 @@ void myCAMSaveToSDFile(){
         //Write 256 bytes image data to file
         myCAM.CS_HIGH();
 //        outFile.write(buf, 256);
-        // test //
-      /*  Serial.print("[");
-        for (int jin = 0; jin < 255; ++jin){
-          Serial.print(buf[i]);
-          Serial.print(", ");
-        }
-        Serial.print(buf[255]);
-        Serial.println("]");      */
-        /////////////////////////////////////////
+        Serial.println(F("--------------------------B---------------------------"));
+        for (int p = 0; p < 256; ++p) Serial.print(buf[p]);
         i = 0;
         buf[i++] = temp;
         myCAM.CS_LOW();
