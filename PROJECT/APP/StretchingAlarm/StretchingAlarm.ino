@@ -6,10 +6,10 @@ SoftwareSerial bteSerial(bteTx, bteRx);  // 통신 객체
 
 void StretchingAlarm()          // 어플로 스트레칭 하라는 instruction을 전달하는 함수
 {
-  int recommendNUM = random(0,4);
+  int recommendNUM = random(1,6);
   String instruction = "S";
   instruction += recommendNUM;
-  bteSerial.print(instruction); // S0 ~ S4라는 instruction을 랜덤으로 전달
+  bteSerial.print(instruction); // S1 ~ S5라는 instruction을 랜덤으로 전달
 }
 
 void setup()

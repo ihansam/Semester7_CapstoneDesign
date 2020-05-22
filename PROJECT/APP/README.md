@@ -1,5 +1,6 @@
-edu.mit.appinventor.ble	  : BTE Extension   
-IoT_BaseConnect   : BTE connection   
-BasicIoTSetup   : BTE connect -> string receive   
-StringTransferPractice(0521)   : string detection   
-Practice_BackUp_0522   : url hyperlink, popup image   
+edu.mit.appinventor.ble	  (BTE Extension)   
+IoT_BaseConnect   (BTE connection)   
+BasicIoTSetup   (BTE connect -> string receive)   
+StringTransferPractice(0521)   (string detection)   
+Practice_BackUp_0522   (url hyperlink, popup image)   
+PracticeBackup0523   (string instruction dealing done)   
