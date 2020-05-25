@@ -1,4 +1,4 @@
-// last update 2020.05.23 by Kidan Jin
+// last update 2020.05.26 by Kidan Jin
 #include <SoftwareSerial.h>     // 통신(블루투스)을 위한 라이브러리
 const int bteTx = 3;            // TXD pin번호
 const int bteRx=2;              // RxD pin번호
@@ -26,7 +26,7 @@ void ShowReport(int RptArr[], int n)    // 어플에 레포트를 띄우는 inst
 }
 
 // 각 센서 값과 라즈베리가 보낸 값을 통해 최종적으로 자세를 판단하는 함수
-int EvaluatePosture(int n/*int 초음파, int 압력[], int 라즈베리*/){
+int EvaluatePosture(int n){
   return random(0, n);  // ^^;
 }
 
@@ -36,8 +36,8 @@ void setup()
   bteSerial.begin(9600);
 }
 
-enum posture {PROPER, TURTLE_NECK, HIP_FRONT, BEND_LEFT, BEND_RIGHT, KNEEL};
-const int posnum = 6;
+enum posture {PROPER, HIP_FRONT, BEND_LEFT, BEND_RIGHT, WAIST_BEND};
+const int posnum = 5;
 const int sensingPeriod = 100;
 
 void loop()
