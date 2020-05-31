@@ -23,12 +23,12 @@ const int cntmax = 10;
 void loop()
 {
   if(++cnt <= cntmax){
-      int valL1 = 1023 - analogRead(L1);
-      int valL2 = 1023 - analogRead(L2);
-      int valL3 = 1023 - analogRead(L3);
-      int valR1 = 1023 - analogRead(R1);
-      int valR2 = 1023 - analogRead(R2);
-      int valR3 = 1023 - analogRead(R3);
+      int valL1 = analogRead(L1);
+      int valL2 = analogRead(L2);
+      int valL3 = analogRead(L3);
+      int valR1 = analogRead(R1);
+      int valR2 = analogRead(R2);
+      int valR3 = analogRead(R3);
       int distance = UltraSonic();
       Serial.print("[ back ]\t"); Serial.print(valL3); Serial.print("\t"); Serial.println(valR3); 
       Serial.print("[middle]\t"); Serial.print(valL2); Serial.print("\t"); Serial.println(valR2); 
@@ -38,7 +38,7 @@ void loop()
       delay(1000);
     
   }
-  else {cnt = 0; delay(10000);}
+  else {cnt = 0; delay(1000);}
 }
 
 int UltraSonic() 
