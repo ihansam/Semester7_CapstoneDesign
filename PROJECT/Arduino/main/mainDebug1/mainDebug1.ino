@@ -1,4 +1,4 @@
-// last update 20.06.01
+//last update 20.06.01
 //lcd 출력부분 고민해보기
 
 // V스위치로 실시간 측정하는 부분 구현해야함 & 알림 onoff기능!!
@@ -10,9 +10,11 @@
 // 마지막으로 이미지센서 ->허리 굽음 
 // 총 5개의 자세로 분류함
 
-#include <LiquidCrystal_I2C.h>    // LCD 라이브러리 및 객체 선언
+// 라이브러리 및 객체 선언
+#include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27,16,2);
 
+// 핀 번호 할당
 //const int L1 = A0;              // 앞
 //const int R1 = A1;
 #define L2 A2                     // 압력 센서 핀
@@ -24,21 +26,67 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 #define redPin 9                  // 실시간 알림용 led 핀
 #define bluePin 11   
 #define greenPin 10 
-
 #define btn_onoff 5               // 실시간 LED 알림 onoff 버튼 (흰색)
 #define btn_capture 4             // 실시간 자세 LCD 확인 버튼 (검정색)
 
-const int posnum = 5;             // 자세의 개수, 자세 이름
-enum POSTURES {Proper=0, Hip_Front, Bend_Left, Bend_Right, Back_Curved};
+// Parameters
+// 자세의 개수 및 이름
+const int posnum = 5;
+enum POSTURES {PROPER=0, HIP_FRONT, BEND_LEFT, BEND_RIGHT, BACK_CURVED};
 // LCD 첫째 줄 문구 (실시간 LED 알림 on/off 상태)
 String RTonoff[2] = {"Real-time : OFF", " Real-time : ON "};
 // LCD 둘째 줄 문구 (현재 자세)
 String pos[posnum] = {"  Good Posture! ", " Far from Back! ", "   Bend Left!   ", "   Bend Right!  ", "  Back Curved!  "};
+const int distanceSN = 4;         // 엉덩이가 떨어져 앉은 것으로 판단하는 초음파 센서 거리 기준
+const int notBalanceDiff = 400;   // 좌우 불균형으로 판단하는 압력 센서 차이 값 기준
+const int sstime = 10;            // 자세 판별 간격: 1초
 
+// Grobal Variables
 bool btn_onoff_pushed = false;    // LED 알림 onoff 버튼이 이전 clock에 눌렸었는지
 bool btn_capture_pushed = false;  // LCD 표시 버튼이 이전 clock에 눌렸었는지
 int isRealtimeON = 1;             // 실시간 LED 알림 모드 ON/OFF 상태 (초기 1)
+int sitTime = 0;                  // 앉은 누적 시간 측정 (자세가 바르던 나쁘던 앉기만하면됨 = FSR에 뭔가 감지되기만 하면)
+int sscnt = 0;                    // 매 loop마다 count하여 sstime이 되면 자세 판별
+int currPos = PROPER;             // 현재 자세
 
+// FUCNTIONS
+bool checkSIT(int l, int r){          // NEEDMODIFY
+  if (l>=450 && l<550 && r>=450 && r<550)
+    return false;
+  return true;
+}
+
+int UltraSonic() 
+{
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+
+  int duration = pulseIn(ECHO, HIGH);
+  int cm = duration / 29 / 2;
+
+  Serial.print("등받이와의 거리 : ");   // DEBUG
+  Serial.print(cm);
+  Serial.println("cm");
+
+  return cm;
+}
+
+// 좌우 불균형 판단함수 (오른쪽 : 1, 균형 : 0, 왼쪽 : 2)
+// 왼쪽 오른쪽 압력센서 측정값의 차가 400 이내면 무게가 고르다고 판단
+int sideBalance(int L, int R) {
+  if(L < R - notBalanceDiff){
+    return 1;
+  }
+  else if(L >= R + notBalanceDiff) {
+    return 2;
+  }
+  else {
+    return 0;
+  }
+}
+
+// MAIN
 void setup()
 {
   Serial.begin(9600);
@@ -58,18 +106,19 @@ void setup()
   lcd.print(RTonoff[isRealtimeON]);
 }
 
-bool checkSIT(int l, int r){          // NEEDMODIFY
-  if (l>=450 && l<550 && r>=450 && r<550)
-    return false;
-  return true;
-}
-
 void loop()
 {
   // 앉았는지 확인하는 부분 -------------------------------------
   int valL = analogRead(L2);
   int valR = analogRead(R2);
-  bool isSIT = checkSIT(valL, valR);  
+  bool isSIT = checkSIT(valL, valR);
+
+  if(isSIT) ++sitTime;
+  else {
+    sitTime = 0;                        // 앉은 시간과 현재 자세 초기화
+    currPos = PROPER;
+  }
+
   Serial.print(valL);                   // DEBUG
   Serial.print(" ");
   Serial.print(valR);
@@ -103,13 +152,37 @@ void loop()
         lcd.setCursor(0, 0);
         lcd.print(RTonoff[isRealtimeON]);
         lcd.setCursor(0, 1);
-        lcd.print("CURRENT POSTURE");             // NEEDMODIFY
+        lcd.print(pos[currPos]);
       }
       btn_capture_pushed = false;
     }      
   }
 
- // 
+  // 자세 판단 부분 --------------------------------------------
+  if(isSIT){
+    if(sscnt < sstime) ++sscnt;
+    else{                                         // 자세 판단 시간이 되었을 때
+      sscnt = 0;
+      if(UltraSonic() > distanceSN)               // 1. 엉덩이를 붙이지 않은 자세
+        currPos = HIP_FRONT;
+      else{ 
+        int checkBalance = sideBalance(valL, valR);
+        if (checkBalance == 2){
+          currPos = BEND_LEFT;                    // 2. 왼쪽으로 기운 자세
+        }
+        else if (checkBalance == 1){
+          currPos = BEND_RIGHT;                   // 3. 오른쪽으로 기운 자세
+        }
+        else{
+          // 라즈베리
+          currPos = PROPER;                       // 0. 바른 자세
+        }
+      }
+      Serial.println("==================현재 자세==================");
+      Serial.println(pos[currPos]);
+      Serial.println("=============================================");
+    }
+  }    
 
   delay(100);
 }
@@ -121,12 +194,8 @@ void loop()
 // 5초(SNtime)에 한번 초음파센서 동작위해, cnt = 500일 때 소닉함수 동작시킴
 int duration, cm;
 // 초음파센서와 인체와의 거리, 기준이 4cm라고 우선 가정
-const int distanceSN = 4;
 
-// 5초(FSRtime)에 한번 압력센서에서 input받기 -> cnt = 500일때 측정 
-int cnt = 0;
-const int sstime = 100; // sstime : 센서측정간격
-int sitTime = 0; // 앉은시간측정, 자세가 바르던 나쁘던 앉기만하면됨(FSR에 뭔가 감지되기만 하면)
+
 const int stretchTime = 5000; // 이 값 이상으로 앉은시간(sitTime) 측정되면 스트레칭용 알림전송
 unsigned long sitStretch = 0;
 const int ledDuration = 500; // led 점멸 시간 간격
@@ -148,7 +217,7 @@ unsigned long prevTime = 0;
 
 int bal;
 int check = 0; //센서 측정 시 나쁜자세인지 아닌지 확인하는 값, 0 이면 나쁜자세 기준 중 어느것에도 걸리지 않은것
-int currPos = 0; // 현재 자세기록
+
 int pri = 0; //앉아있는 시간이 기준 이상일 때 1로 변화
 
 
@@ -216,30 +285,7 @@ void loop() {
     }
     else {
       UltraSonic();
-      sideBalance(valL2, valR2);
-
       
-      // 초음파센서 측정
-      if(cm > distanceSN) { // 기준보다 초음파센서와 거리가 멀 때
-        posture[1] += 1;
-        Serial.println("올바르지 않은자세: type1, 등받이와 엉덩이 멀어짐");
-        check++;
-        currPos = 1;
-      }
-      // 좌로 기울어짐
-      else if(bal == 2) {
-        posture[2] += 1;
-        Serial.println("올바르지 않은자세: type2, 왼쪽으로 기울어짐");
-        check++;
-        currPos = 2;
-      }
-      // 우로 기울어짐
-      else if(bal == 1) {
-        posture[3] += 1;
-        Serial.println("올바르지 않은자세: type3, 오른쪽으로 기울어짐");
-        check++;
-        currPos = 3;
-      }
 
       // 이미지데이터 처리결과반영
       //
@@ -328,41 +374,9 @@ void loop() {
   delay(10);
 }
 
-// 좌우불균형 판단함수
-// 오른쪽 : 1, 균형 : 0, 왼쪽 : 2
-// 왼쪽오른쪽 측정값의 차가 400 이내면 무게가 고르다고 판단
-int sideBalance(int L, int R) {
-  if(L < R - 400)
-  {
-    bal = 1;
-  }
-  else if(L >= R + 400)
-  {
-    bal = 2;
-  }
-  else {
-    bal = 0;
-  }
-  return bal;
-}
 
 
 // 초음파 센서로 거리 측정하는 함수
-int UltraSonic() 
-{
-  digitalWrite(TRIG, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG, LOW);
-
-  duration = pulseIn(ECHO, HIGH);
-  cm = duration / 29 / 2;
-
-  Serial.print("등받이와의 거리 : ");
-  Serial.print(cm);
-  Serial.println("cm");
-
-  return cm;
-}
 
 */
       /*Serial.println("압력센서 측정값");
