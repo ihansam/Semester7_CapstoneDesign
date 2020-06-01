@@ -31,9 +31,13 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 const int posnum = 5;             // 자세의 개수, 자세 이름
 enum POSTURES {Proper=0, Hip_Front, Bend_Left, Bend_Right, Back_Curved};
 // LCD 첫째 줄 문구 (실시간 LED 알림 on/off 상태)
-String RTonoff[2] = {" Real-time : ON ", "Real-time : OFF"};
+String RTonoff[2] = {"Real-time : OFF", " Real-time : ON "};
 // LCD 둘째 줄 문구 (현재 자세)
 String pos[posnum] = {"  Good Posture! ", " Far from Back! ", "   Bend Left!   ", "   Bend Right!  ", "  Back Curved!  "};
+
+bool btn_onoff_pushed = false;    // LED 알림 onoff 버튼이 이전 clock에 눌렸었는지
+bool btn_capture_pushed = false;  // LCD 표시 버튼이 이전 clock에 눌렸었는지
+int isRealtimeON = 1;             // 실시간 LED 알림 모드 ON/OFF 상태 (초기 1)
 
 void setup()
 {
@@ -51,12 +55,62 @@ void setup()
   lcd.backlight();
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(" Real-time : ON ");
+  lcd.print(RTonoff[isRealtimeON]);
+}
+
+bool checkSIT(int l, int r){          // NEEDMODIFY
+  if (l>=450 && l<550 && r>=450 && r<550)
+    return false;
+  return true;
 }
 
 void loop()
 {
-  Serial.println("hello");
+  // 앉았는지 확인하는 부분 -------------------------------------
+  int valL = analogRead(L2);
+  int valR = analogRead(R2);
+  bool isSIT = checkSIT(valL, valR);  
+  Serial.print(valL);                   // DEBUG
+  Serial.print(" ");
+  Serial.print(valR);
+  Serial.print(" ");
+  Serial.println(isSIT);
+  
+  // 각 버튼이 눌렸는지를 감지하는 부분 ---------------------------
+  int btn_onoff_pushing = digitalRead(btn_onoff);
+  int btn_capture_pushing = digitalRead(btn_capture);
+
+  if(btn_onoff_pushing == LOW){
+    btn_onoff_pushed = true;    
+  }
+  else{
+    if(btn_onoff_pushed == true){
+      isRealtimeON = (isRealtimeON + 1) % 2;
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(RTonoff[isRealtimeON]);
+      btn_onoff_pushed = false;
+    }      
+  }
+  
+  if(btn_capture_pushing == LOW){
+    btn_capture_pushed = true;    
+  }
+  else{
+    if(btn_capture_pushed == true){
+      if(isSIT){
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print(RTonoff[isRealtimeON]);
+        lcd.setCursor(0, 1);
+        lcd.print("CURRENT POSTURE");             // NEEDMODIFY
+      }
+      btn_capture_pushed = false;
+    }      
+  }
+
+ // 
+
   delay(100);
 }
 
