@@ -1,7 +1,7 @@
 //last update 20.06.02
 // 핀 번호 할당 ---------------------------------------------------------
-#define L2 A2                     // 압력 센서 핀
-#define R2 A3  
+#define L2 A3                     // 압력 센서 핀
+#define R2 A2  
 #define TRIG 2                    // 초음파 센서 핀
 #define ECHO 3
 #define redPin 9                  // 실시간 알림용 led 핀
@@ -26,11 +26,13 @@ const int posnum = 5;
 String RTonoff[2] = {"Real-time : OFF", " Real-time : ON "};  // LCD 첫째 줄 문구 (실시간 LED 알림 on/off 상태)
 // LCD 아래줄 문구: 현재 자세
 String pos[posnum] = {"  Good Posture! ", " Far from Back! ", "   Bend Left!   ", "   Bend Right!  ", "  Back Curved!  "};
-const int distanceSN = 4;         // 엉덩이가 떨어져 앉은 것으로 판단하는 초음파 센서 거리 기준
-const int notBalanceDiff = 400;   // 좌우 불균형으로 판단하는 압력 센서 차이 값 기준 // 바꿔야됨
+const float distanceSN = 3.22;    // 엉덩이가 떨어져 앉은 것으로 판단하는 초음파 센서 거리 기준
+const int notBalanceDiff = 200;   // 좌우 불균형으로 판단하는 압력 센서 차이 값 기준
+const int minWeight = 100;        // 앉았다고 판단하는 압력 센서 값
 const int sstime = 10;            // 자세 판별 간격: 1초
-const int maxDATA = 10;           // 데이터가 이만큼 모이면 데이터 분석 및 어플로 REPORT 전송
-const int stretchTime = 150;      // 스트레칭 알림 주기 (15초 이상 오래 앉아있을 시 알림)
+const int maxDATA = 100;          // 데이터가 이만큼 모이면 데이터 분석 및 어플로 REPORT 전송
+//const int stretchTime = 150;      // 스트레칭 알림 주기 (15초 이상 오래 앉아있을 시 알림)
+const int stretchTime = 70;       // 스트레칭 알림 주기 (15초 이상 오래 앉아있을 시 알림)
 const int ledDuration = 500;      // led 점멸 시간 간격: 500ms
 const int loopPeriod = 100;       // main loop 간격: 100ms
 const int BADnum = 3;             // 3초 이상 나쁜 자세 유지시 LED 실시간 알림
@@ -52,22 +54,21 @@ int badCnt = 0;                   // 연속 나쁜 자세 개수 카운트
 // FUCNTIONS --------------------------------------------------------------
 // 압력 센서 값을 읽어, 앉아있는지 여부를 반환하는 함수, 앉아있다면 TRUE 반환
 bool checkSIT(int l, int r){
-    //if (l>=450 && l<550 && r>=450 && r<550)
-  if (l >= 400 || r >= 400)
+  if (l >= minWeight || r >= minWeight)
     return true;
   else
     return false;
 }
 
 // 등받이와 엉덩이 사이 거리를 측정해 반환하는 함수
-int UltraSonic() 
+float UltraSonic() 
 {
   digitalWrite(TRIG, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG, LOW);
 
   int duration = pulseIn(ECHO, HIGH);
-  int cm = duration / 29 / 2;
+  float cm = (float)duration / 29 / 2;
 
   Serial.print("등받이와의 거리 : ");   // DEBUG
   Serial.print(cm);
