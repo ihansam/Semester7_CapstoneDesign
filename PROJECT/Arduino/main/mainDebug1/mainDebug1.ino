@@ -1,4 +1,4 @@
-//last update 20.06.01
+//last update 20.06.02
 
 // 라이브러리 및 객체 선언 ----------------------------------------------
 #include <LiquidCrystal_I2C.h>
@@ -34,6 +34,7 @@ const int maxDATA = 10;           // 데이터가 이만큼 모이면 데이터 
 const int stretchTime = 150;      // 스트레칭 알림 주기 (15초 이상 오래 앉아있을 시 알림)
 const int ledDuration = 500;      // led 점멸 시간 간격: 500ms
 const int loopPeriod = 100;       // main loop 간격: 100ms
+const int BADnum = 3;             // 3초 이상 나쁜 자세 유지시 LED 실시간 알림
 
 // Global Variables --------------------------------------------------------
 bool btn_onoff_pushed = false;    // LED onoff 버튼이 직전 loop에서 눌렸었는지
@@ -47,6 +48,7 @@ int sitTime = 0;                  // 앉은 누적 시간 측정 (자세가 바�
 unsigned long prevLEDtime = 0;    // led 점멸을 위한 시간 측정
 unsigned long currentTime = 0;    // 시스템 동작 시간
 bool isLEDon = false;             // 점멸하는 led의 onoff 상태
+int badCnt = 0;                   // 연속 나쁜 자세 개수 카운트
 
 // FUCNTIONS --------------------------------------------------------------
 // 압력 센서 값을 읽어, 앉아있는지 여부를 반환하는 함수 // NEEDMODIFY
@@ -131,9 +133,10 @@ void loop()
   bool isSIT = checkSIT(valL, valR);    // 앉았는지 판단 => isSIT
 
   if(isSIT) ++sitTime;                  // 앉았으면 앉은 시간 ++
-  else {                                // 앉지 않았으면 앉은 시간과 현재 자세 초기화
-    sitTime = 0;                        
+  else {                                // 앉지 않았으면 앉은 시간, 현재 자세,
+    sitTime = 0;                        //   누적 나쁜 자세 개수 초기화
     currPos = PROPER;
+    badCnt = 0;
   }
   
   // 각 버튼이 눌렸는지를 감지하는 부분 ---------------------------
@@ -174,14 +177,7 @@ void loop()
     if(sscnt < sstime) ++sscnt;                 // 자세 판단 간격 count
     else{                                       // 자세 판단 시간이 되었을 때
       sscnt = 0;
-      Serial.print("LEFT: ");       // DEBUG
-      Serial.print(valL);
-      Serial.print(" / RIGHT: ");
-      Serial.println(valR);
-      Serial.print("sitTime: ");
-      Serial.println(sitTime);
-      Serial.print("dataNUM: ");
-      Serial.println(numDATA);
+
       if(UltraSonic() > distanceSN)                 // 1st: 초음파 센서 거리 체크
         currPos = HIP_FRONT;                        // => [1] 엉덩이를 붙이지 않은 자세
       else{ 
@@ -198,9 +194,24 @@ void loop()
           else currPos = PROPER;                    // => [0]. 바른 자세
         }
       }
+
       posDATA[currPos] += 1;                        // 판단 자세 결과를 posDATA에 누적
       ++numDATA;
-      Serial.println("==================현재 자세==================");      // DEBUG
+      
+      if(currPos) ++badCnt;                         // 판단 결과가 나쁜 자세면 badcnt++
+      else badCnt = 0;                              // 판단 결과가 바른 자세면 badcnt 리셋
+
+      Serial.print("LEFT: ");                       // DEBUG
+      Serial.print(valL);
+      Serial.print(" / RIGHT: ");
+      Serial.println(valR);
+      Serial.print("sitTime: ");
+      Serial.println(sitTime);
+      Serial.print("dataNUM: ");
+      Serial.println(numDATA);
+      Serial.print("badCnt: ");
+      Serial.println(badCnt);
+      Serial.println("==================현재 자세==================");
       Serial.println(pos[currPos]);
       Serial.println("=============================================");
     }
@@ -220,8 +231,8 @@ void loop()
     }
   }
   else if (isRealtimeON){                         // 아직 스트레칭 시간이 아니고 실시간 알림이 on이면
-    if(currPos) RGBWrite(255, 0, 0);              // currPos가 0이 아니면 나쁜 자세, 빨간색
-    else RGBWrite(0, 255, 0);                     // 0이면 바른 자세, 초록색
+    if(badCnt >= BADnum) RGBWrite(255, 0, 0);     // 나쁜 자세가 일정 시간 지속되면 빨간 색
+    else RGBWrite(0, 255, 0);                     // 그 외 초록색
   }
   else RGBWrite(0,0,0);                           // 앉아있지만, 실시간 알림이 off면 LED off
   

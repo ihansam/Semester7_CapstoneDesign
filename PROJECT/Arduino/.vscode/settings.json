@@ -1,0 +1,10 @@
+{
+    "editor.tabSize": 2,
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [ 
+            { "scope": "comment", 
+                "settings": {"foreground": "#f32b2b",} 
+            } 
+        ]
+    }
+}
