@@ -27,7 +27,7 @@ String RTonoff[2] = {"Real-time : OFF", " Real-time : ON "};  // LCD 첫째 줄 
 // LCD 아래줄 문구: 현재 자세
 String pos[posnum] = {"  Good Posture! ", " Far from Back! ", "   Bend Left!   ", "   Bend Right!  ", "  Back Curved!  "};
 const int distanceSN = 4;         // 엉덩이가 떨어져 앉은 것으로 판단하는 초음파 센서 거리 기준
-const int notBalanceDiff = 400;   // 좌우 불균형으로 판단하는 압력 센서 차이 값 기준
+const int notBalanceDiff = 400;   // 좌우 불균형으로 판단하는 압력 센서 차이 값 기준 // 바꿔야됨
 const int sstime = 10;            // 자세 판별 간격: 1초
 const int maxDATA = 10;           // 데이터가 이만큼 모이면 데이터 분석 및 어플로 REPORT 전송
 const int stretchTime = 150;      // 스트레칭 알림 주기 (15초 이상 오래 앉아있을 시 알림)
@@ -50,11 +50,13 @@ bool isLEDon = false;             // 점멸하는 led의 onoff 상태
 int badCnt = 0;                   // 연속 나쁜 자세 개수 카운트
 
 // FUCNTIONS --------------------------------------------------------------
-// 압력 센서 값을 읽어, 앉아있는지 여부를 반환하는 함수 // NEEDMODIFY
+// 압력 센서 값을 읽어, 앉아있는지 여부를 반환하는 함수, 앉아있다면 TRUE 반환
 bool checkSIT(int l, int r){
-    if (l>=450 && l<550 && r>=450 && r<550)
+    //if (l>=450 && l<550 && r>=450 && r<550)
+  if (l >= 400 || r >= 400)
+    return true;
+  else
     return false;
-  return true;
 }
 
 // 등받이와 엉덩이 사이 거리를 측정해 반환하는 함수
@@ -253,7 +255,8 @@ void loop()
     if(currentTime > prevLEDtime + ledDuration){  // LED 점멸
       prevLEDtime = currentTime;
       isLEDon = !isLEDon;
-      RGBWrite(255*isLEDon, 255*isLEDon, 0);      // isLEDon이 true면 ON, false면 OFF
+      RGBWrite(255*isLEDon, 0, 0);
+      //RGBWrite(255*isLEDon, 255*isLEDon, 0);      // isLEDon이 true면 ON, false면 OFF
     }
   }
   else if (isRealtimeON){                         // 아직 스트레칭 시간이 아니고 실시간 알림이 on이면
