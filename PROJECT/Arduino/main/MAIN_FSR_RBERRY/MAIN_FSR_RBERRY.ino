@@ -1,4 +1,4 @@
-//last update 20.06.02
+//last update 20.06.03
 // 핀 번호 할당 ---------------------------------------------------------
 #define L2 A3                     // 압력 센서 핀 left, right, front
 #define R2 A2
@@ -97,6 +97,16 @@ bool checkBackBend(){
   // while(True) {if received signal: break}
   // return received;
   return false;             //DEBUG 허리가 굽지 않았으면(바른 자세면) false 반환
+}
+
+// 라즈베리파이 통신 잘 되는지 테스트하기 위한 함수
+String check_raspberrypin(){
+  int m1 = analogRead(A8);
+  int m2 = analogRead(A9);
+  if (m1 > 500 && m2 > 500) return "허리가 펴져있다";
+  else if (m1 > 500 && m2 <= 500) return "허리가 굽어있다";
+  else if (m1 <= 500 && m2 >= 500) return "거북목";
+  else return "라즈베리 준비 X";
 }
 
 // RGB LED에 r,g,b값에 해당하는 색깔을 출력하는 함수
@@ -247,6 +257,8 @@ void loop()
       Serial.println("==================현재 자세==================");
       Serial.println(pos[currPos]);
       Serial.println("=============================================");
+      Serial.print("라즈베리에서 받은 신호: ");
+      Serial.println(check_raspberrypin());
     }
   }    
 
