@@ -93,6 +93,7 @@ int sideBalance(int L, int R) {
 
 // 라즈베리파이를 호출해 현재 딥러닝 모델이 허리가 굽었는지를 판독한 결과를 받아오는 함수
 bool checkBackBend(){
+  // 라즈베리파이가 준비되었는지를 확인하는 과정 -> 셋업에도 추가하기
   // Serial.println("RASPBERRY")
   // while(True) {if received signal: break}
   // return received;
