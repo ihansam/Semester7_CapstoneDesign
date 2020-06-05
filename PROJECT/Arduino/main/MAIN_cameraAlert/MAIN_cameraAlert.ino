@@ -1,4 +1,4 @@
-//last update 20.06.03
+//last update 20.06.05
 // 핀 번호 할당 ---------------------------------------------------------
 #define L2 A3                     // 압력 센서 핀 left, right, front
 #define R2 A2
@@ -12,6 +12,8 @@
 #define btn_capture 4             // 실시간 자세 LCD 확인 버튼 (검정색)
 #define bteTx 14                  // TXD pin번호
 #define bteRx 15                  // RxD pin번호
+#define MSB A8                    // 라즈베리 통신 pin번호
+#define LSB A9
 
 // 라이브러리 및 객체 선언 ----------------------------------------------
 #include <LiquidCrystal_I2C.h>    // LCD
@@ -37,6 +39,8 @@ const int stretchTime = 70;       // 스트레칭 알림 주기 (15초 이상 �
 const int ledDuration = 500;      // led 점멸 시간 간격: 500ms
 const int loopPeriod = 100;       // main loop 간격: 100ms
 const int BADnum = 3;             // 3초 이상 나쁜 자세 유지시 LED 실시간 알림
+enum BERRYSIGNAL {NOT_PREPARED=0, UNCERTAIN, CURVED, STRAIGHT};
+const int uncertainMax = 3;       // 3초 이상 자세 판독 불가시 카메라 위치 재설정 알림
 
 // Global Variables --------------------------------------------------------
 bool btn_onoff_pushed = false;    // LED onoff 버튼이 직전 loop에서 눌렸었는지
@@ -51,6 +55,7 @@ unsigned long prevLEDtime = 0;    // led 점멸을 위한 시간 측정
 unsigned long currentTime = 0;    // 시스템 동작 시간
 bool isLEDon = false;             // 점멸하는 led의 onoff 상태
 int badCnt = 0;                   // 연속 나쁜 자세 개수 카운트
+int currBerrySig = NOT_PREPARED;  // 현재 라즈베리가 보낸 신호
 
 // FUCNTIONS --------------------------------------------------------------
 // 압력 센서 값을 읽어, 앉아있는지 여부를 반환하는 함수, 앉아있다면 TRUE 반환
@@ -91,23 +96,44 @@ int sideBalance(int L, int R) {
   }
 }
 
-// 라즈베리파이를 호출해 현재 딥러닝 모델이 허리가 굽었는지를 판독한 결과를 받아오는 함수
-bool checkBackBend(){
-  // 라즈베리파이가 준비되었는지를 확인하는 과정 -> 셋업에도 추가하기
-  // Serial.println("RASPBERRY")
-  // while(True) {if received signal: break}
-  // return received;
-  return false;             //DEBUG 허리가 굽지 않았으면(바른 자세면) false 반환
+// 라즈베리파이가 보내는 신호를 읽는 함수
+int CheckRaspberryPin(){
+  int m1 = analogRead(MSB);
+  int m2 = analogRead(LSB);
+  if (m1 > 500 && m2 > 500) return STRAIGHT;
+  else if (m1 > 500 && m2 <= 500) return CURVED;
+  else if (m1 <= 500 && m2 >= 500) return UNCERTAIN;
+  else return NOT_PREPARED;
 }
 
-// 라즈베리파이 통신 잘 되는지 테스트하기 위한 함수
-String check_raspberrypin(){
-  int m1 = analogRead(A8);
-  int m2 = analogRead(A9);
-  if (m1 > 500 && m2 > 500) return "허리가 펴져있다";
-  else if (m1 > 500 && m2 <= 500) return "허리가 굽어있다";
-  else if (m1 <= 500 && m2 >= 500) return "거북목";
-  else return "라즈베리 준비 X";
+// 어플로 카메라 위치를 재설정하라는 경고를 보내는 함수
+void CameraErrorAlarm()
+{
+  static int erroridx = 0;
+  String instruction = "C";
+  instruction += erroridx++;
+  bteSerial.print(instruction);
+}
+
+// 어플로 카메라 위치가 적절함을 알리는 함수
+void CameraSettingDone()
+{
+  static int doneidx = 0;
+  String instruction = "D";
+  instruction += doneidx++;
+  bteSerial.print(instruction);
+}
+
+void CameraCheck(int sig){
+  static int UncertainCnt = 0;
+  if (sig == UNCERTAIN) {                       // 판독 불가 signal을 지속적으로 받으면
+    if(UncertainCnt == uncertainMax) CameraErrorAlarm();  // 카메라 위치 재설정 경고 보냄
+    ++UncertainCnt;
+  }
+  else if (UncertainCnt > 0) {                  // 카메라 위치를 잘 잡아 판독이 가능해지면
+    UncertainCnt = 0;                           // 카메라 위치 설정이 잘 되었다는 알림 보냄
+    CameraSettingDone();
+  }  
 }
 
 // RGB LED에 r,g,b값에 해당하는 색깔을 출력하는 함수
@@ -148,6 +174,7 @@ void setup()
 {
   Serial.begin(9600);
   bteSerial.begin(9600);
+  Serial.println("[Program Start]");
   
   pinMode(btn_onoff, INPUT_PULLUP);     // pin mapping
   pinMode(btn_capture, INPUT_PULLUP);
@@ -162,8 +189,28 @@ void setup()
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(RTonoff[isRealtimeON]);
+  Serial.println("[LCD Setup Clear]");
 
   RGBWrite(0,0,0);                      // led setup
+  Serial.println("[LED Setup Clear]");
+
+  currBerrySig = CheckRaspberryPin();   // 라즈베리 딥러닝 모델 준비 완료 여부 확인
+  while(currBerrySig == NOT_PREPARED) {
+    Serial.println("[waiting for raspberry...]");
+    delay(1000);
+    currBerrySig = CheckRaspberryPin();
+  }
+  Serial.println("[Raspberry Setup Clear]");
+  
+  while(currBerrySig == UNCERTAIN){     // 카메라 정상 동작 여부 확인
+    CameraCheck(currBerrySig);
+    Serial.println("[please set camera properly!]");
+    delay(1000);
+    currBerrySig = CheckRaspberryPin();
+  }
+  CameraCheck(currBerrySig);
+  Serial.println("[Camera Works Properly]");
+  Serial.println("[System Setup Done]");
 }
 
 void loop()
@@ -219,6 +266,8 @@ void loop()
     if(sscnt < sstime) ++sscnt;                 // 자세 판단 간격 count
     else{                                       // 자세 판단 시간이 되었을 때
       sscnt = 0;
+      currBerrySig = CheckRaspberryPin();           // 라즈베리가 보낸 신호 감지
+      CameraCheck(currBerrySig);                    // 카메라 상태를 점검
 
       if(UltraSonic() > distanceSN)                 // 1st: 초음파 센서 거리 체크
         currPos = HIP_FRONT;                        // => [1] 엉덩이를 붙이지 않은 자세
@@ -231,9 +280,11 @@ void loop()
           currPos = BEND_RIGHT;                     // => [3] 오른쪽으로 기운 자세
         }
         else{
-          if (checkBackBend())                      // 3rd: 이미지 센서 허리 굽음 체크
+          if (currBerrySig == CURVED)               // 3rd: 이미지 센서 허리 굽음 체크
             currPos = BACK_CURVED;                  // => [4] 허리가 굽은 자세
-          else currPos = PROPER;                    // => [0]. 바른 자세
+          else if (currBerrySig == STRAIGHT)
+            currPos = PROPER;                       // => [0]. 바른 자세
+        //else                                      // 이외의 상황에서는 실시간 자세를 업데이트하지 않음
         }
       }
 
@@ -242,8 +293,8 @@ void loop()
       
       if(currPos) ++badCnt;                         // 판단 결과가 나쁜 자세면 badcnt++
       else badCnt = 0;                              // 판단 결과가 바른 자세면 badcnt 리셋
-
-      Serial.print("LEFT: ");                       // DEBUG
+      // DEBUG ////////////////////////////////////////////////////////////////////////
+      Serial.print("LEFT: "); 
       Serial.print(valL);
       Serial.print(" / RIGHT: ");
       Serial.print(valR);
@@ -258,8 +309,12 @@ void loop()
       Serial.println("==================현재 자세==================");
       Serial.println(pos[currPos]);
       Serial.println("=============================================");
-      Serial.print("라즈베리에서 받은 신호: ");
-      Serial.println(check_raspberrypin());
+      Serial.print("라즈베리에서 받은 신호: ");   // BERRYSIGNAL {NOT_PREPARED=0, UNCERTAIN, CURVED, STRAIGHT};
+      if (currBerrySig == NOT_PREPARED) Serial.println("딥러닝 모델 준비 미완료");
+      else if (currBerrySig == UNCERTAIN) Serial.println("자세 판독 불가");
+      else if (currBerrySig == CURVED) Serial.println("허리가 굽어있음");
+      else Serial.println("허리가 펴져있음");
+      ///////////////////////////////////////////////////////////////////////////////////
     }
   }    
 
