@@ -13,7 +13,7 @@
 #define bteTx 14                  // TXD pin번호
 #define bteRx 15                  // RxD pin번호
 #define MSB A8                    // 라즈베리 통신 pin번호
-#define LSB A9
+#define LSB A0
 
 // 라이브러리 및 객체 선언 ----------------------------------------------
 #include <LiquidCrystal_I2C.h>    // LCD
