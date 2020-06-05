@@ -8,7 +8,6 @@
 *.jpg
 *.png
 *.mp4
-*.aia
 
 # ignore directory
 Accounting/

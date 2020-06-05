@@ -13,6 +13,15 @@ void CameraErrorAlarm()          // 어플로 카메라 위치 오류 알람
   Serial.println(instruction);
 }
 
+void CameraSettingDone()
+{
+  static int doneidx = 0;
+  String instruction = "D";
+  instruction += doneidx++;
+  bteSerial.print(instruction);
+  Serial.println(instruction);
+}
+
 void setup()
 {
   Serial.begin(9600);
@@ -22,5 +31,7 @@ void setup()
 void loop()
 {
   CameraErrorAlarm();            // 함수 호출
-  delay(10000);
+  delay(5000);
+  CameraSettingDone();
+  delay(15000);
 }
