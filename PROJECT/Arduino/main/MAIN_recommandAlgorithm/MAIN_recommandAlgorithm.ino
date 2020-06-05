@@ -1,8 +1,8 @@
 // last update 20.06.05
 // 핀 번호 할당 ---------------------------------------------------------
-#define L2 A3                     // 압력 센서 핀 left, right, front
+#define L2 A1                     // 압력 센서 핀 left, right, front
 #define R2 A2
-#define F2 A1
+#define F2 A3
 #define TRIG 2                    // 초음파 센서 핀
 #define ECHO 3
 #define redPin 9                  // 실시간 알림용 led 핀
