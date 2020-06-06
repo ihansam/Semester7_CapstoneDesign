@@ -1,4 +1,4 @@
-// last update 20.06.05
+// last update 20.06.06
 // 핀 번호 할당 ---------------------------------------------------------
 #define L2 A1                     // 압력 센서 핀 left, right, front
 #define R2 A2
@@ -182,10 +182,10 @@ void StretchingAlarm(int RptArr[], int n)
     
   if (sum < 5)                          // 정보가 충분하지 않으면 랜덤 스트레칭 추천
     recommendNUM = random(1,6);        
-  else if (RptArr[0] < sum/5)           // 바른 자세 비율이 20% 미만이면
-    recommendNUM = 5;                   // 강도 높은 스트레칭 추천
   else if (RptArr[4] >= sum/2)          // 허리 굽은 자세 비율이 50% 이상이면
     recommendNUM = 4;                   // 허리 피는 스트레칭 추천
+  else if (RptArr[0] < sum/5)           // 바른 자세 비율이 20% 미만이면
+    recommendNUM = 5;                   // 강도 높은 스트레칭 추천
   else                                  // 그 외에는 의자에서 할 수 있는
     recommendNUM = random(1,4);         // 간단한 스트레칭을 추천
     
