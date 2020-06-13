@@ -132,6 +132,7 @@ void CameraSettingDone()
   bteSerial.print(instruction);
 }
 
+// 라즈베리파이 신호가 "판독 불가"일 때 Exception Handling
 void CameraCheck(int sig)
 {
   static int UncertainCnt = 0;
