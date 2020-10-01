@@ -1,7 +1,8 @@
 # Capstone Design Project
 SKKU EEE "천지창조"   
 [poster] https://github.com/ihansam/Semester7_CapstoneDesign/blob/master/POSTER.png   
-[main code] https://github.com/ihansam/Semester7_CapstoneDesign/blob/master/PROJECT/Arduino/main/MAIN.ino
+[main code] https://github.com/ihansam/Semester7_CapstoneDesign/blob/master/PROJECT/Arduino/main/MAIN.ino   
+[presentation] https://drive.google.com/file/d/16la-7WctjRawTUc4HVrjY0vsOB5FtoVv/view?usp=sharing
 
 Smart Health Chair
 -------------------
